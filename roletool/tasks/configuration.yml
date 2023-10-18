@@ -1,0 +1,23 @@
+---
+- name: Configure service1
+  template:
+    src: scylla.yaml.j2
+    dest: /etc/scylla/scylla.yaml
+    owner: ubuntu
+    group: ubuntu
+    mode: '0644'
+  become: true
+  notify:
+    - Reload systemd
+
+- name: Check if user exists
+  command: cqlsh -u cassandra -p cassandra -e "SELECT * FROM system_auth.roles WHERE role = '{{ username }}';"
+  changed_when: false
+  register: user_exists
+  
+- name: Create user in scylla
+  command: cqlsh -u cassandra -p cassandra  -e "CREATE USER '{{ username }}' WITH PASSWORD '{{ passwd }}' SUPERUSER;"
+  when: "user_exists.rc != 0"
+
+#- name: Create key in scylla
+#  command: cqlsh -u cassandra -p cassandra -e "CREATE KEYSPACE {{ keyname }} WITH replication = {'class':'SimpleStrategy', 'replication_factor':3};"
